@@ -17,22 +17,6 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 .nav-clock{font-family:'DM Mono',monospace;font-size:32px;color:var(--yellow);letter-spacing:2px}
 .nav-date{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);text-align:right;letter-spacing:1px;text-transform:uppercase}
 
-/* LOGOUT BTN */
-.btn-logout{
-  background:none;
-  border:2px solid var(--border);
-  border-radius:10px;
-  color:var(--muted);
-  font-family:'Barlow',sans-serif;
-  font-size:14px;font-weight:700;
-  padding:10px 20px;
-  cursor:pointer;
-  letter-spacing:1px;
-  transition:all .2s;
-  display:flex;align-items:center;gap:8px;
-}
-.btn-logout:hover{border-color:var(--red);color:var(--red);}
-
 /* PAGES */
 .page{display:none;padding:32px;max-width:1100px;margin:0 auto}
 .page.active{display:block}
@@ -80,6 +64,7 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 .emp-name{font-size:24px;font-weight:800;margin-bottom:6px}
 .emp-id{font-family:'DM Mono',monospace;font-size:17px;color:#fff;font-weight:600;margin-bottom:6px}
 .emp-shift{font-size:16px;color:var(--yellow2);font-weight:700}
+.emp-offday{font-size:14px;color:var(--muted);margin-top:4px;font-weight:600}
 
 /* BUTTONS */
 .action-row{display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap}
@@ -143,14 +128,7 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="nav-clock" id="clock">00:00:00</div>
     <div class="nav-date" id="navDate">—</div>
   </div>
-  <button class="btn-logout" onclick="logout()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-      <polyline points="16 17 21 12 16 7"/>
-      <line x1="21" y1="12" x2="9" y2="12"/>
-    </svg>
-    LOGOUT
-  </button>
+  <button onclick="logout()" style="background:none;border:2px solid #2a2a2a;border-radius:10px;color:#666;font-family:Barlow,sans-serif;font-size:14px;font-weight:700;padding:10px 20px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#ff4444';this.style.color='#ff4444'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#666'">LOGOUT</button>
 </nav>
 
 <!-- HOME PAGE -->
@@ -239,16 +217,8 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 <div class="toast" id="toast"></div>
 
 <script>
-// ── AUTH GUARD ────────────────────────────
-if(!sessionStorage.getItem('ufix_auth')){
-  window.location.href='login.html';
-}
-
-function logout(){
-  sessionStorage.removeItem('ufix_auth');
-  window.location.href='login.html';
-}
-
+if(localStorage.getItem('ufix_auth')!=='1'){window.location.href='login.html';}
+function logout(){localStorage.removeItem('ufix_auth');window.location.href='login.html';}
 const BOT_TOKEN="8758406348:AAEjNIPMChEc1gZ3IQlh7aUCShVwutGHOFU";
 const CHAT_IDS=["5952683615","39730332"];
 const SERVER="http://localhost:5000";
@@ -326,12 +296,14 @@ function renderGrids(){
       <div class="emp-name">${e.name}</div>
       <div class="emp-id">${e.id}</div>
       <div class="emp-shift">${SHIFT_LABELS[e.shift]||e.shift}</div>
+      <div class="emp-offday">🗓 Off: ${e.off_day||'Sunday'}</div>
     </div>`).join('');
   document.getElementById('coEmpGrid').innerHTML=filtered.map(e=>`
     <div class="emp-card" id="co_${e.id.replace('#','')}" onclick="selectCO('${e.id}')">
       <div class="emp-name">${e.name}</div>
       <div class="emp-id">${e.id}</div>
       <div class="emp-shift">${SHIFT_LABELS[e.shift]||e.shift}</div>
+      <div class="emp-offday">🗓 Off: ${e.off_day||'Sunday'}</div>
     </div>`).join('');
 }
 
@@ -369,6 +341,14 @@ function getMonthKey(d){return d.getFullYear()+'-M'+String(d.getMonth()+1).padSt
 // ── CHECK-IN ──────────────────────────────
 async function startCheckin(){
   if(!selectedCI)return;
+  const now=new Date();
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const today=dayNames[now.getDay()];
+  if(selectedCI.off_day && selectedCI.off_day===today){
+    showToast('⛔ Today is '+selectedCI.name+"'s day off ("+today+")","error");
+    addLog('error',selectedCI.name+' — today is off day',today,'logBody');
+    return;
+  }
   await openCamera();
 }
 
